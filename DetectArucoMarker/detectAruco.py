@@ -47,6 +47,13 @@ myThread.start()
 
 camera = cv2.VideoCapture(0) # Initialize the camera
 sleep(0.5) # wait for image to stabilize
+# termination criteria
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+objpoints = [] # 3d point in real world space
+imgpoints = [] # 2d points in image plane.
+# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+objp = np.zeros((6*7,3), np.float32)
+objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
 
 
 while True:
@@ -54,48 +61,57 @@ while True:
     ret,frame = camera.read() # Take an image
     if ret:
         grey = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Make the image greyscale for ArUco detection
-        imageWithQuad = grey.copy()
-        cv2.line(imageWithQuad, (320,500),(320,0), (255,0,0), 2)
-        cv2.line(imageWithQuad, (640,250),(0,250), (255,0,0), 2)
-        cv2.imshow("image",imageWithQuad) # show image
+        cv2.imshow("image",grey) # show image
         corners,ids,rejected = aruco.detectMarkers(grey,aruco_dict) # find the marker
+        objpoints.append(objp) # 3D real world points
+        cv2.cornerSubPix(grey,corners,(11,11),(-1,-1),criteria) # more exact than integers
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q'):
             break
         if not ids is None:
-            #verticies = corners.reshape((4,2))
+            
             (topLeft, topRight, bottomRight, bottomLeft) = corners[0][0] # get coordinates of verticies
-            xm = [0,0]
-            ym = [0,0]
-            xm[0] = ((topRight[0] - topLeft[0])/2.0) + topLeft[0] # find top midpoint
-            xm[1] = ((bottomRight[0] - bottomLeft[0])/2.0) + bottomLeft[0] #find bottom midpoint
-            xMid = ((xm[1]-xm[0])/2) + xm[0] # find x midpoint
-            ym[0] = ((topLeft[1] - bottomLeft[1])/2.0) + bottomLeft[1] # find left midpoint
-            ym[1] = ((topRight[1] - bottomRight[1])/2.0) + bottomRight[1] # findright midpoint
-            yMid = ((ym[1]-ym[0])/2) + ym[0] # find y midpoint
-            #print(f"xMid = {xMid}, yMid = {yMid}")
-            if xMid >= (pixelWidth/2): # right half of the camera (east)
-                if yMid >= (pixelHgt/2): # bottom right quarter of camera (SE)
-                    # send out SE command
-                    newDesLocation = '10'
-                elif yMid < (pixelHgt/2): # top right quarter of camera (NE)
-                    # send out NE command
-                    newDesLocation = '00'
-            elif xMid <= (pixelWidth/2): # left half of the camera (west)
-                if yMid >= (pixelHgt/2): # bottom left quarter of camera (SW)
-                    # send out SW command
-                    newDesLocation = '11'
-                elif yMid < (pixelHgt/2): # top left quarter of camera (NW)
-                    # send out NW command
-                    newDesLocation = '01'
-            # Send it to the thread and arduino
-            if newDesLocation != currDesLocation: # Put your own conditional here (i.e. ArUco marker moved)
-                q.put(newDesLocation)
-                currDesLocation = newDesLocation
-                try:
-                    # Write a byte to the i2c bus
-                    command = [ord(character) for character in newDesLocation]
-                    i2c.write_i2c_block_data(ARD_ADDR,0,command)
-                except IOError:
-                    print("Could not write data to the Arduino.")
+
+        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, grey.shape[::-1],None,None) # get camera matrix
+        h, w = grey.shape[:2] # height and width of image
+        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(mtx,dist,(w,h),1,(w,h)) # new camera matrix without distortion
+        dst = cv2.undistort(grey, mtx, dist, None, newcameramtx) # undistort image
+        cv2.imshow("image",dst) # show image
+
 camera.release()
+
+'''
+# termination criteria
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+objp = np.zeros((6*7,3), np.float32)
+objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
+
+# Arrays to store object points and image points from all the images.
+objpoints = [] # 3d point in real world space
+imgpoints = [] # 2d points in image plane.
+
+images = glob.glob('*.jpg')
+ 
+for fname in images:
+img = cv2.imread(fname)
+gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+
+# Find the chess board corners
+ret, corners = cv2.findChessboardCorners(gray, (7,6),None)
+
+# If found, add object points, image points (after refining them)
+if ret == True:
+objpoints.append(objp)
+
+cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
+imgpoints.append(corners)
+
+# Draw and display the corners
+cv2.drawChessboardCorners(img, (7,6), corners2,ret)
+cv2.imshow('img',img)
+cv2.waitKey(500)
+
+cv2.destroyAllWindows()
+'''
