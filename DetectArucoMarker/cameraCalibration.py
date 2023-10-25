@@ -25,21 +25,16 @@ mtxHolder = []
 while True:
     ret,frame = camera.read() # Take an image
     if ret:
-        '''
-        cv2.imshow('nomarker', frame)
-        k = cv2.waitKey(1) & 0xFF
-        if k == ord('q'):
-                break
-        '''
                 
         grey = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Make the image greyscale for ArUco detection
         ret, corners = cv2.findChessboardCorners(grey, (6,8), None) # find the marker
+        
         if ret:
-            corners2 = cv2.cornerSubPix(grey,corners,(11,11),(-1,-1),criteria) # more exact than integers
-            imgpoints.append(corners2)
+            corners2 = cv2.cornerSubPix(grey,corners,(11,11),(-1,-1),criteria) # more exact points
+            imgpoints.append(corners2) # corners
             objpoints.append(objp) # 3D real world points
             captures += 1
-            cv2.drawChessboardCorners(grey, (6,8), corners2, ret)
+            cv2.drawChessboardCorners(grey, (6,8), corners2, ret) # show the corners of the chessboard on the image
             cv2.imshow("image",grey) # show image
             cv2.waitKey(500)
 
@@ -52,7 +47,7 @@ while True:
             print(mtx)
             mtxHolder.append(mtx)
             
-            if captures >= max_captures:
+            if captures >= max_captures: # only take 20 captures for the average matrix
                 break
         objpoints = [] # 3d point in real world space
         imgpoints = [] # 2d points in image plane.
