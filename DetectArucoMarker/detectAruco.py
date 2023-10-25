@@ -26,24 +26,8 @@ aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_50)
 # globals
 pixelWidth = 640
 pixelHgt = 500
-currDesLocation = '00'
-'''
-q = queue.Queue()
-def myFunction():
-    # initialize LCD screen
-    lcd_columns = 16
-    lcd_rows = 2
-    i2c = busio.I2C(board.SCL, board.SDA)
-    lcd = character_lcd.Character_LCD_RGB_I2C(i2c, lcd_columns, lcd_rows)
-    while True:
-        if not q.empty():
-            angle = q.get()
-            lcd.color = [10,10,10]
-            lcd.message = f"angle: {angle:.1f}"
 
-myThread = threading.Thread(target=myFunction,args=())
-myThread.start()
-'''
+
 lcd_columns = 16
 lcd_rows = 2
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -95,8 +79,8 @@ while True:
             print(f"tvecs: {tvecs}")
             if captures >= max_captures:
                 break
-'''
-'''
+
+
 avgMtx = np.zeros(mtxHolder[0].shape)
 
 skipCount = 0
@@ -121,11 +105,11 @@ prevAngle = 0
 # Detect aruco marker in undistorted image
 while True:
     ret,frame = camera.read() # Take an image
-    if ret:
-        cv2.imshow('image', frame)
-    k = cv2.waitKey(1) & 0xFF
-    if k == ord('q'):
-        break
+    #if ret:
+        #cv2.imshow('image', frame)
+    #k = cv2.waitKey(1) & 0xFF
+    #if k == ord('q'):
+        #break
     grey = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY) # Make the image greyscale for ArUco detection
     corners, ids, rejected = aruco.detectMarkers(grey, aruco_dict) # find the marker
 
@@ -156,23 +140,18 @@ while True:
         #print(f"angle with math: {math.degrees(angle)*1.13}")
         #q.put(math.degrees(angle))
         rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners[0], 0.05, mtx, None)
-        #print(f"from function away: {tvec[0][0][2] * 100}")
-        #print(f"from function side: {tvec[0][0][0] * 78}")
         functionAway = tvec[0][0][2]
         functionLeftRight = tvec[0][0][0]
         angleFunction = math.atan((functionLeftRight/functionAway))
-        #print(f"angle with function: {math.degrees(angleFunction)}")
-        if (angleFunction < 0):
-            angleFunction /= 1.04
+        if (math.degrees(angleFunction) < 0):
+            angleFunction /= 0.98
         else:
-            angleFunction /= 1.15
+            angleFunction /= 1.2
         lcd.message = f"Marker Detected \nAngle: {math.degrees(angleFunction):.1f}"
     else:
         lcd.message = "No Marker Detected\n                 "
 
-    #if angleFunction != prevAngle:
-        #q.put(math.degrees(angleFunction))
-    #prevAngle = angleFunction
+    
                     
 cv2.destroyAllWindows()
 camera.release()
