@@ -35,10 +35,11 @@ sleep(0.5) # wait for image to stabilize
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-mtx1 = np.array([[1093, 0, 322], [0, 1109, 204], [0, 0, 1]])
-mtx2 = np.array([[1231, 0 ,328], [0, 1257, 188], [0, 0, 1]])
-mtxFudge = np.array([[605,0,314],[0,602,200],[0,0,1]])
-mtx = mtxFudge
+
+mtx = np.array([[665.509,   0,     326.64769],
+                [   0,  665.4425,   226.725 ],
+                [   0,      0,        0     ]])
+dist = np.array([0.1241, -0.928, 0.0038768, -0.0001471, 1.3405])
 prevAngle = 0
 
 # Detect aruco marker in undistorted image
@@ -62,22 +63,20 @@ while True:
         ym[1] = ((topRight[1] - bottomRight[1])/2.0) + bottomRight[1] # findright midpoint
         yMid = ((ym[1]-ym[0])/2) + ym[0] # find y midpoint
         
-        rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners[0], 0.05, mtx, None) # get translation and rotation vectors
+        rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners[0], 0.1, mtx, dist) # get translation and rotation vectors
         functionAway = tvec[0][0][2] # gives distance from marker
         functionLeftRight = tvec[0][0][0] # gives distance from center of image
         
         angleFunction = math.atan((functionLeftRight/functionAway))
+        print(f"distance from camera: {tvec[0][0][2]}")
+        print(f"distance left/right: {tvec[0][0][0]}")
+        print(f"distance up/down: {tvec[0][0][1]}")
+        print(f"angle: {math.degrees(angleFunction)}")
         
-        if (math.degrees(angleFunction) < 0):
-            angleFunction /= 0.98 # fudge factor
-        else:
-            angleFunction /= 1.2 # fudge factor
-        lcd.message = f"Marker Detected \nAngle: {math.degrees(angleFunction):.1f}"
-    else:
-        lcd.message = "No Marker Detected\n                "
+        #aruco.drawAxis(frame, mtx, dist, rvec[0][0], tvec[0][0], 100)
+    cv2.imshow('with axis', frame)
+    cv2.waitKey(0)
     
                     
 cv2.destroyAllWindows()
 camera.release()
-
-
