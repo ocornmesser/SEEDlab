@@ -1,1 +1,2 @@
-
+This script contains a finite state machine with several states that guides the robot throught the demo 2 progression. This is in addition to the control system made in demo 1. 
+Using both position and velocity control, the robot goes through the states, either moving linearly or rotating based on what is necessary. Finally, there is code that recieves important values from the pi, including marker detection, marker distance, and marker angle. 
